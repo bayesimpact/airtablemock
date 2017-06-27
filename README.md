@@ -43,3 +43,12 @@ class TestMyCode(unittest.TestCase):
     records = client.get('table-foo')
     …
 ```
+
+## Release
+
+To create a new release of airtablemock, update the version number in
+`setup.py`, tag the Git repo and run:
+
+```sh
+python setup.py sdist upload
+```
