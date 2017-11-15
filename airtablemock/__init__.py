@@ -23,7 +23,7 @@ class Airtable(object):
         self.api_key = api_key
 
     def _table(self, table_name):
-        return _BASES[self.base_id]
+        return _BASES[self.base_id][table_name]
 
     def iterate(self, table_name, batch_size=0, filter_by_formula=None, view=None):
         """Iterate over all records of a table."""
