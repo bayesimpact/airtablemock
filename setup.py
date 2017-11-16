@@ -1,7 +1,8 @@
 from setuptools import setup
+
 setup(
     name='airtablemock',
-    version='0.0.1',
+    version='0.0.2',
     packages=['airtablemock'],
     install_requires=['mock>=2.0.0'],
     description='Mock library for the airtable client',
