@@ -90,6 +90,48 @@ class AirtablemockTestCase(unittest.TestCase):
 
         self.assertEqual([4], [record['fields']['number'] for record in records])
 
+    def test_multiple_bases(self):
+        """Test using the same table name in 2 different bases."""
+
+        base1 = airtablemock.Airtable('first-base')
+        base1.create('multiple-tables', {'number': 6})
+
+        base2 = airtablemock.Airtable('second-base')
+        base2.create('multiple-tables', {'number': 7})
+
+        records = base1.iterate('multiple-tables')
+        self.assertEqual([6], [record['fields']['number'] for record in records])
+
+    def test_multiple_clients(self):
+        """Test accessing a table from different clients."""
+
+        base1 = airtablemock.Airtable('first-base')
+        base1.create('multiple-clients-table', {'number': 8})
+
+        other_client_base1 = airtablemock.Airtable('first-base')
+        other_client_base1.create('multiple-clients-table', {'number': 9})
+
+        records = base1.iterate('multiple-clients-table')
+        self.assertEqual([8, 9], [record['fields']['number'] for record in records])
+
+
+class FunctionsTestCase(unittest.TestCase):
+    """Tests for top level module functions."""
+
+    def test_clear(self):
+        """Basic usage of the clear function."""
+
+        base1 = airtablemock.Airtable('first-base')
+        base1.create('multiple-clients-table', {'number': 8})
+
+        airtablemock.clear()
+
+        other_client_base1 = airtablemock.Airtable('first-base')
+        other_client_base1.create('multiple-clients-table', {'number': 9})
+
+        records = base1.iterate('multiple-clients-table')
+        self.assertEqual([9], [record['fields']['number'] for record in records])
+
 
 if __name__ == '__main__':
     unittest.main()  # pragma: no cover

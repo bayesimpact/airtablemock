@@ -1,3 +1,5 @@
+"""A mock for the airtable module to ease unittests."""
+
 import collections
 import itertools
 import logging
@@ -11,8 +13,14 @@ import mock
 _BASES = collections.defaultdict(lambda: collections.defaultdict(collections.OrderedDict))
 
 
+def clear():
+    """Drop all tables from all bases."""
+    _BASES.clear()
+
+
 def patch(target):
     """A function or class decorator to patch the target airtable module with this one."""
+    clear()
     return mock.patch(target, new=sys.modules[__name__])
 
 
@@ -72,7 +80,7 @@ class Airtable(object):
     def create(self, table_name, data):
         """Create a new record."""
         table = self._table(table_name)
-        for i in range(30):
+        for unused_i in range(30):
             record_id = _generate_random_id()
             if record_id not in table:
                 break
