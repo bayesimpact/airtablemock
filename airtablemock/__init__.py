@@ -5,6 +5,7 @@ import itertools
 import logging
 import random
 import sys
+import unittest
 
 import mock
 
@@ -107,6 +108,21 @@ class Airtable(object):
         table = self._table(table_name)
         del table[record_id]
         return {'id': record_id, 'deleted': True}
+
+
+class TestCase(unittest.TestCase):
+    """A base class to run independant unit tests using airtablemock.
+
+    Use this class as a base class for your test, and then access airtable as
+    you would normally.
+    """
+
+    def setUp(self):
+        super(TestCase, self).setUp()
+        patcher = mock.patch('airtable.airtable.Airtable', Airtable)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.addCleanup(clear)
 
 
 def _generate_random_id():

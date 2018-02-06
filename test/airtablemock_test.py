@@ -3,42 +3,43 @@ import unittest
 
 import mock
 
+from airtable import airtable
 import airtablemock
 
 
-class AirtablemockTestCase(unittest.TestCase):
+class AirtablemockTestCase(airtablemock.TestCase):
     """Unit tests for the Airtablemock class."""
 
     def test_get(self):
         """Test basic usage of the get method."""
 
-        base = airtablemock.Airtable()
-        base.create('get-table', {'number': 1})
-        base.create('get-table', {'number': 2})
+        base = airtable.Airtable()
+        base.create('table', {'number': 1})
+        base.create('table', {'number': 2})
 
-        records = base.get('get-table')['records']
+        records = base.get('table')['records']
 
         self.assertEqual([1, 2], [record['fields']['number'] for record in records])
 
     def test_get_by_record_id(self):
         """Test getting one record by its ID."""
 
-        base = airtablemock.Airtable()
-        record = base.create('get-table-record-id', {'number': 1})
-        base.create('get-table-record-id', {'number': 2})
+        base = airtable.Airtable()
+        record = base.create('table', {'number': 1})
+        base.create('table', {'number': 2})
 
-        fetched_record = base.get('get-table-record-id', record_id=record['id'])
+        fetched_record = base.get('table', record_id=record['id'])
 
         self.assertEqual(record, fetched_record)
 
     def test_iterate(self):
         """Test basic usage of the iterate method."""
 
-        base = airtablemock.Airtable()
-        base.create('iterate-table', {'number': 3})
-        base.create('iterate-table', {'number': 4})
+        base = airtable.Airtable()
+        base.create('table', {'number': 3})
+        base.create('table', {'number': 4})
 
-        records = base.iterate('iterate-table')
+        records = base.iterate('table')
 
         self.assertEqual([3, 4], [record['fields']['number'] for record in records])
 
@@ -48,70 +49,70 @@ class AirtablemockTestCase(unittest.TestCase):
 
         mock_randrange.return_value = 14
 
-        base = airtablemock.Airtable()
-        base.create('random-table', {'number': 5})
+        base = airtable.Airtable()
+        base.create('table', {'number': 5})
         with self.assertRaises(RuntimeError):
-            base.create('random-table', {'number': 6})
+            base.create('table', {'number': 6})
 
     def test_update(self):
         """Updates a record partially."""
 
-        base = airtablemock.Airtable()
-        record = base.create('update-table', {'number': 3, 'untouched_field': 'original'})
+        base = airtable.Airtable()
+        record = base.create('table', {'number': 3, 'untouched_field': 'original'})
         record_id = record['id']
-        base.update('update-table', record_id, {'number': 4, 'new_field': 'future'})
+        base.update('table', record_id, {'number': 4, 'new_field': 'future'})
 
-        fields = [record['fields'] for record in base.iterate('update-table')]
+        fields = [record['fields'] for record in base.iterate('table')]
         self.assertEqual(
             [{'number': 4, 'untouched_field': 'original', 'new_field': 'future'}], fields)
 
     def test_update_all(self):
         """Updates a record entirely."""
 
-        base = airtablemock.Airtable()
-        record = base.create('update-all-table', {'number': 3, 'untouched_field': 'original'})
+        base = airtable.Airtable()
+        record = base.create('table', {'number': 3, 'untouched_field': 'original'})
         record_id = record['id']
-        base.update_all('update-all-table', record_id, {'number': 4, 'new_field': 'future'})
+        base.update_all('table', record_id, {'number': 4, 'new_field': 'future'})
 
-        fields = [record['fields'] for record in base.iterate('update-all-table')]
+        fields = [record['fields'] for record in base.iterate('table')]
         self.assertEqual([{'number': 4, 'new_field': 'future'}], fields)
 
     def test_delete(self):
         """Delete a record."""
 
-        base = airtablemock.Airtable()
-        record = base.create('delete-table', {'number': 3})
+        base = airtable.Airtable()
+        record = base.create('table', {'number': 3})
         record_id = record['id']
-        base.create('delete-table', {'number': 4})
+        base.create('table', {'number': 4})
 
-        base.delete('delete-table', record_id)
+        base.delete('table', record_id)
 
-        records = base.iterate('delete-table')
+        records = base.iterate('table')
 
         self.assertEqual([4], [record['fields']['number'] for record in records])
 
     def test_multiple_bases(self):
         """Test using the same table name in 2 different bases."""
 
-        base1 = airtablemock.Airtable('first-base')
-        base1.create('multiple-tables', {'number': 6})
+        base1 = airtable.Airtable('first-base')
+        base1.create('table', {'number': 6})
 
-        base2 = airtablemock.Airtable('second-base')
-        base2.create('multiple-tables', {'number': 7})
+        base2 = airtable.Airtable('second-base')
+        base2.create('table', {'number': 7})
 
-        records = base1.iterate('multiple-tables')
+        records = base1.iterate('table')
         self.assertEqual([6], [record['fields']['number'] for record in records])
 
     def test_multiple_clients(self):
         """Test accessing a table from different clients."""
 
-        base1 = airtablemock.Airtable('first-base')
-        base1.create('multiple-clients-table', {'number': 8})
+        base1 = airtable.Airtable('first-base')
+        base1.create('table', {'number': 8})
 
-        other_client_base1 = airtablemock.Airtable('first-base')
-        other_client_base1.create('multiple-clients-table', {'number': 9})
+        other_client_base1 = airtable.Airtable('first-base')
+        other_client_base1.create('table', {'number': 9})
 
-        records = base1.iterate('multiple-clients-table')
+        records = base1.iterate('table')
         self.assertEqual([8, 9], [record['fields']['number'] for record in records])
 
 
@@ -122,14 +123,14 @@ class FunctionsTestCase(unittest.TestCase):
         """Basic usage of the clear function."""
 
         base1 = airtablemock.Airtable('first-base')
-        base1.create('multiple-clients-table', {'number': 8})
+        base1.create('table', {'number': 8})
 
         airtablemock.clear()
 
         other_client_base1 = airtablemock.Airtable('first-base')
-        other_client_base1.create('multiple-clients-table', {'number': 9})
+        other_client_base1.create('table', {'number': 9})
 
-        records = base1.iterate('multiple-clients-table')
+        records = base1.iterate('table')
         self.assertEqual([9], [record['fields']['number'] for record in records])
 
 
