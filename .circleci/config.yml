@@ -1,0 +1,10 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: python:3
+    steps:
+      - checkout
+      - run:
+          name: Run tests
+          command: python setup.py pytest
