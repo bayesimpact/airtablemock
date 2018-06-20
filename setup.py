@@ -2,9 +2,9 @@ from setuptools import setup
 
 setup(
     name='airtablemock',
-    version='0.0.3',
+    version='0.0.4',
     packages=['airtablemock'],
-    install_requires=['mock>=2.0.0'],
+    install_requires=['mock>=2.0.0', 'parsimonious'],
     tests_require=['airtable', 'pytest'],
     setup_requires=['pytest-runner'],
     description='Mock library for the airtable client',

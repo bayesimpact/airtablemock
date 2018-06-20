@@ -2,12 +2,16 @@
 
 import collections
 import itertools
+import json
 import logging
 import random
+import re
 import sys
 import unittest
 
 import mock
+from parsimonious import exceptions
+from parsimonious import grammar
 
 
 # A dictionary of all Airtable bases accessed by MockAirtable clients.
@@ -56,13 +60,12 @@ class Airtable(object):
         if record_id:
             return {'id': record_id, 'fields': table[record_id]}
 
-        if filter_by_formula:
-            raise NotImplementedError(
-                'The filter_by_formula feature is not implemented in airtablemock.')
         if view:
             logging.warning('The view field is ignored in airtablemock.')
 
         items = table.items()
+        if filter_by_formula:
+            items = filter(_create_predicate(filter_by_formula), items)
         if offset:
             items = itertools.islice(items, offset, None)
         if not limit or limit > 100:
@@ -108,6 +111,86 @@ class Airtable(object):
         table = self._table(table_name)
         del table[record_id]
         return {'id': record_id, 'deleted': True}
+
+
+# See grammar at
+# https://support.airtable.com/hc/en-us/articles/203255215-Formula-field-reference
+_FORMULA_GRAMMAR = grammar.Grammar(
+    r'''
+    expression  = simple_expression / function_call
+    simple_expression = field_or_value blank operator blank field_or_value
+    function_call = binary_function "(" expression "," blank expression ")"
+    field_or_value = field / numeric / text
+    blank       = ~"\s*"
+    field       = ~"[a-z_]\w*"i
+    operator    = "=" / "!=" / "<=" / ">=" / "<" / ">"
+    numeric     = "-"? positive_number ("." positive_number)?
+    positive_number = ~"[0-9]+"
+    text        = "\"" quoted_text "\""
+    quoted_text = ~"([^\"\\\\]|\\.)*"
+    binary_function = "AND" / "OR"
+    '''
+)
+
+
+def _create_predicate(formula):
+    try:
+        formula_parsed = _FORMULA_GRAMMAR.parse(formula)
+    except exceptions.ParseError:
+        raise NotImplementedError(
+            'The filter_by_formula feature is not implemented in airtablemock for this formula {}.'
+            .format(formula))
+    return _create_predicate_from_node(formula_parsed)
+
+
+def _create_predicate_from_node(formula):
+    if formula.expr_name == 'expression' and len(formula.children) == 1:
+        formula = formula.children[0]
+
+    if formula.expr_name == 'simple_expression' and len(formula.children) == 5:
+        operator = formula.children[2].text
+        get_a = _create_value_getter_from_node(formula.children[0])
+        get_b = _create_value_getter_from_node(formula.children[-1])
+        if operator == '=':
+            return lambda *args: get_a(*args) == get_b(*args)
+        if operator == '!=':
+            return lambda *args: get_a(*args) != get_b(*args)
+        if operator == '<':
+            return lambda *args: get_a(*args) < get_b(*args)
+        if operator == '<=':
+            return lambda *args: get_a(*args) <= get_b(*args)
+        if operator == '>':
+            return lambda *args: get_a(*args) > get_b(*args)
+        if operator == '>=':
+            return lambda *args: get_a(*args) >= get_b(*args)
+        raise NotImplementedError(
+            'Operator {} not supported yet in filter_by_formula'.format(operator))
+
+    if formula.expr_name == 'function_call':
+        funcname = formula.children[0].text
+        pred1 = _create_predicate_from_node(formula.children[2])
+        pred2 = _create_predicate_from_node(formula.children[5])
+        if funcname == 'AND':
+            return lambda *args: pred1(*args) and pred2(*args)
+        if funcname == 'OR':
+            return lambda *args: pred1(*args) or pred2(*args)
+        raise NotImplementedError(
+            'Function "{}" not supported yet in filter_by_formula'.format(funcname))
+
+    raise NotImplementedError(
+        'Grammar not supported yet in filter_by_formula: {}'.forma(formula.text))
+
+
+def _create_value_getter_from_node(node):
+    if node.expr_name == 'field_or_value' and len(node.children) == 1:
+        node = node.children[0]
+
+    if node.expr_name == 'field':
+        fieldname = node.text
+        return lambda key_fields: key_fields[1].get(fieldname)
+
+    value = json.loads(node.text)
+    return lambda *args: value
 
 
 class TestCase(unittest.TestCase):

@@ -32,6 +32,56 @@ class AirtablemockTestCase(airtablemock.TestCase):
 
         self.assertEqual(record, fetched_record)
 
+    def test_filter_by_formula_equal(self):
+        """Test filtering by formula with a simple equal."""
+
+        base = airtable.Airtable()
+        base.create('table', {'number': 1, 'filter': 'yes'})
+        base.create('table', {'number': 2, 'filter': 'no'})
+        base.create('table', {'number': 3, 'filter': 'yes'})
+
+        records = base.get('table', filter_by_formula='filter = "yes"')['records']
+
+        self.assertEqual([1, 3], [record['fields']['number'] for record in records])
+
+    def test_filter_by_formula_greater(self):
+        """Test filtering by formula with a numerical greater than."""
+
+        base = airtable.Airtable()
+        base.create('table', {'number': 1, 'filter': 'yes'})
+        base.create('table', {'number': 2, 'filter': 'no'})
+        base.create('table', {'number': 3, 'filter': 'yes'})
+
+        records = base.get('table', filter_by_formula='number >= 1.99')['records']
+
+        self.assertEqual([2, 3], [record['fields']['number'] for record in records])
+
+    def test_filter_by_formula_and(self):
+        """Test filtering by formula using AND."""
+
+        base = airtable.Airtable()
+        base.create('table', {'number': 1, 'filter': 'yes', 'other': 'a'})
+        base.create('table', {'number': 2, 'filter': 'no', 'other': 'a'})
+        base.create('table', {'number': 3, 'filter': 'yes', 'other': 'b'})
+
+        records = base.get(
+            'table', filter_by_formula='AND(filter = "yes", other = "b")')['records']
+
+        self.assertEqual([3], [record['fields']['number'] for record in records])
+
+    def test_filter_by_formula_offset(self):
+        """Test filtering by formula and using an offset."""
+
+        base = airtable.Airtable()
+        base.create('table', {'number': 1, 'filter': 'no'})
+        base.create('table', {'number': 2, 'filter': 'yes'})
+        base.create('table', {'number': 3, 'filter': 'yes'})
+
+        # Note that the offset should be applied after the filter.
+        records = base.get('table', filter_by_formula='filter = "yes"', offset=1)['records']
+
+        self.assertEqual([3], [record['fields']['number'] for record in records])
+
     def test_iterate(self):
         """Test basic usage of the iterate method."""
 
