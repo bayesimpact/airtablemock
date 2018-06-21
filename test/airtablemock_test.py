@@ -161,6 +161,29 @@ class AirtablemockTestCase(airtablemock.TestCase):
 
         self.assertEqual([3, 4], [record['fields']['number'] for record in records])
 
+    def test_iterate_filter_by_formula(self):
+        """Test filtering by formula on the iterate method."""
+
+        base = airtable.Airtable('base')
+        base.create('table', {'number': 3})
+        base.create('table', {'number': 4})
+
+        records = base.iterate('table', filter_by_formula='number > 3')
+
+        self.assertEqual([4], [record['fields']['number'] for record in records])
+
+    def test_iterate_view(self):
+        """Test iterating a view."""
+
+        base = airtable.Airtable('base')
+        base.create('table', {'number': 3})
+        base.create('table', {'number': 4})
+        base.create_view('table', 'my-view', 'number < 4')
+
+        records = base.iterate('table', view='my-view')
+
+        self.assertEqual([3], [record['fields']['number'] for record in records])
+
     @mock.patch(airtablemock.random.__name__ + '.randrange')
     def test_create_no_random(self, mock_randrange):
         """Tries creating an entry without randomness."""
