@@ -3,6 +3,7 @@
 ## Unreleased
 
 * Implement the `view` feature of the get method.
+* Raises an error when trying to access a table that was not created before.
 
 ## v0.0.4 [2018-06-19]
 

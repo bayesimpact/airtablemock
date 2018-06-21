@@ -35,6 +35,16 @@ class AirtablemockTestCase(airtablemock.TestCase):
 
         self.assertEqual(record, fetched_record)
 
+    def test_get_missing_table(self):
+        """Test getting a table that does not exist."""
+
+        base = airtable.Airtable('base')
+
+        match_exception = '404 .* Not Found .* {}'.format(
+            re.escape('{}base/table'.format(airtable.API_URL % airtable.API_VERSION)))
+        with self.assertRaisesRegex(exceptions.HTTPError, match_exception):
+            base.get('table')
+
     def test_filter_by_formula_equal(self):
         """Test filtering by formula with a simple equal."""
 

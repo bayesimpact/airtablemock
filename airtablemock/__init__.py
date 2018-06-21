@@ -44,10 +44,14 @@ class Airtable(object):
         self.base_id = base_id
         self.api_key = api_key
 
-    def _table(self, table_name):
-        # TODO(pascal): Raise an error
-        # 404 Client Error: Not Found for url: https://api.airtable.com/v0/.../...
-        # if the table does not exist.
+    def _table(self, table_name, must_exist=True):
+        if must_exist and table_name not in _BASES[self.base_id]:
+            response = requests.Response()
+            response.status_code = 404
+            response.reason = 'Not Found'
+            response.url = '{}{}/{}'.format(
+                _API_URL, parse.quote(self.base_id), parse.quote(table_name))
+            response.raise_for_status()
         return _BASES[self.base_id][table_name]
 
     def iterate(self, table_name, batch_size=0, filter_by_formula=None, view=None):
@@ -119,7 +123,7 @@ class Airtable(object):
 
     def create(self, table_name, data):
         """Create a new record."""
-        table = self._table(table_name)
+        table = self._table(table_name, must_exist=False)
         for unused_i in range(30):
             record_id = _generate_random_id()
             if record_id not in table:
