@@ -44,10 +44,14 @@ class Airtable(object):
         self.base_id = base_id
         self.api_key = api_key
 
-    def _table(self, table_name):
-        # TODO(pascal): Raise an error
-        # 404 Client Error: Not Found for url: https://api.airtable.com/v0/.../...
-        # if the table does not exist.
+    def _table(self, table_name, must_exist=False):
+        if must_exist and table_name not in _BASES[self.base_id]:
+            response = requests.Response()
+            response.status_code = 404
+            response.reason = 'Not Found'
+            response.url = '{}{}/{}'.format(
+                _API_URL, parse.quote(self.base_id), parse.quote(table_name))
+            response.raise_for_status()
         return _BASES[self.base_id][table_name]
 
     def iterate(self, table_name, batch_size=0, filter_by_formula=None, view=None):
@@ -62,7 +66,7 @@ class Airtable(object):
         if view:
             logging.warning('view ignored in MockAirtableClient.iterate')
 
-        for key, fields in self._table(table_name).items():
+        for key, fields in self._table(table_name, must_exist=True).items():
             yield {'id': key, 'fields': fields}
 
     def get(self, table_name, record_id=None, limit=0, offset=None,
@@ -75,7 +79,7 @@ class Airtable(object):
         will return an error (the same error that Airtable would respond in
         case of a incorrect view).
         """
-        table = self._table(table_name)
+        table = self._table(table_name, must_exist=True)
 
         if record_id:
             return {'id': record_id, 'fields': table[record_id]}
@@ -132,19 +136,19 @@ class Airtable(object):
 
     def update(self, table_name, record_id, data):
         """Update one record partially."""
-        table = self._table(table_name)
+        table = self._table(table_name, must_exist=True)
         table[record_id].update(data)
         return {'id': record_id, 'fields': table[record_id]}
 
     def update_all(self, table_name, record_id, data):
         """Update one record completely."""
-        table = self._table(table_name)
+        table = self._table(table_name, must_exist=True)
         table[record_id] = data
         return {'id': record_id, 'fields': table[record_id]}
 
     def delete(self, table_name, record_id):
         """Delete a record."""
-        table = self._table(table_name)
+        table = self._table(table_name, must_exist=True)
         del table[record_id]
         return {'id': record_id, 'deleted': True}
 
