@@ -58,33 +58,8 @@ class Airtable(object):
         """Iterate over all records of a table."""
         if batch_size:
             logging.info('batch_size ignored in MockAirtableClient.iterate')
-        # TODO(pascal): Factorize with get method to get the view and
-        # filter_by_formula implementations.
-        if filter_by_formula:
-            raise NotImplementedError(
-                'the filter_by_formula feature is not implemented in MockAirtableClient')
-        if view:
-            logging.warning('view ignored in MockAirtableClient.iterate')
 
-        for key, fields in self._table(table_name).items():
-            yield {'id': key, 'fields': fields}
-
-    def get(self, table_name, record_id=None, limit=0, offset=None,
-            filter_by_formula=None, view=None):
-        """Get a list of records from a table.
-
-        The view parameter is handled specifically compared to the real API: by
-        default it's just ignored (the full table is used), however as soon as
-        the create_view method is used, the view must exists or this function
-        will return an error (the same error that Airtable would respond in
-        case of a incorrect view).
-        """
-        table = self._table(table_name)
-
-        if record_id:
-            return {'id': record_id, 'fields': table[record_id]}
-
-        items = table.items()
+        items = self._table(table_name).items()
 
         if view:
             if _VIEWS:
@@ -105,6 +80,26 @@ class Airtable(object):
         if filter_by_formula:
             items = filter(_create_predicate(filter_by_formula), items)
 
+        for key, fields in items:
+            yield {'id': key, 'fields': fields}
+
+    def get(self, table_name, record_id=None, limit=0, offset=None,
+            filter_by_formula=None, view=None):
+        """Get a list of records from a table.
+
+        The view parameter is handled specifically compared to the real API: by
+        default it's just ignored (the full table is used), however as soon as
+        the create_view method is used, the view must exists or this function
+        will return an error (the same error that Airtable would respond in
+        case of a incorrect view).
+        """
+        table = self._table(table_name)
+
+        if record_id:
+            return {'id': record_id, 'fields': self._table(table_name)[record_id]}
+
+        items = self.iterate(table_name, filter_by_formula=filter_by_formula, view=view)
+
         if offset:
             items = itertools.islice(items, offset, None)
 
@@ -114,9 +109,7 @@ class Airtable(object):
         items = itertools.islice(items, limit)
 
         all_items = list(items)
-        response = {
-            'records': [{'id': key, 'fields': fields} for key, fields in all_items],
-        }
+        response = {'records': all_items}
         if len(all_items) + (offset or 0) == len(table):
             response['offset'] = (offset or 0) + len(all_items)
         return response
