@@ -8,19 +8,27 @@ import random
 import re
 import sys
 import unittest
+from urllib import parse
 
 import mock
 from parsimonious import exceptions
 from parsimonious import grammar
+import requests
 
+
+_API_URL = 'https://api.airtable.com/v0/'
 
 # A dictionary of all Airtable bases accessed by MockAirtable clients.
 _BASES = collections.defaultdict(lambda: collections.defaultdict(collections.OrderedDict))
+
+# A dictionary of all views predicates grouped by base ID and table name.
+_VIEWS = collections.defaultdict(lambda: collections.defaultdict(collections.OrderedDict))
 
 
 def clear():
     """Drop all tables from all bases."""
     _BASES.clear()
+    _VIEWS.clear()
 
 
 def patch(target):
@@ -37,12 +45,17 @@ class Airtable(object):
         self.api_key = api_key
 
     def _table(self, table_name):
+        # TODO(pascal): Raise an error
+        # 404 Client Error: Not Found for url: https://api.airtable.com/v0/.../...
+        # if the table does not exist.
         return _BASES[self.base_id][table_name]
 
     def iterate(self, table_name, batch_size=0, filter_by_formula=None, view=None):
         """Iterate over all records of a table."""
         if batch_size:
             logging.info('batch_size ignored in MockAirtableClient.iterate')
+        # TODO(pascal): Factorize with get method to get the view and
+        # filter_by_formula implementations.
         if filter_by_formula:
             raise NotImplementedError(
                 'the filter_by_formula feature is not implemented in MockAirtableClient')
@@ -54,20 +67,43 @@ class Airtable(object):
 
     def get(self, table_name, record_id=None, limit=0, offset=None,
             filter_by_formula=None, view=None):
-        """Get a list of records from a table."""
+        """Get a list of records from a table.
+
+        The view parameter is handled specifically compared to the real API: by
+        default it's just ignored (the full table is used), however as soon as
+        the create_view method is used, the view must exists or this function
+        will return an error (the same error that Airtable would respond in
+        case of a incorrect view).
+        """
         table = self._table(table_name)
 
         if record_id:
             return {'id': record_id, 'fields': table[record_id]}
 
-        if view:
-            logging.warning('The view field is ignored in airtablemock.')
-
         items = table.items()
+
+        if view:
+            if _VIEWS:
+                view_predicate = _VIEWS[self.base_id][table_name].get(view)
+                if not view_predicate:
+                    response = requests.Response()
+                    response.status_code = 422
+                    response.reason = 'Unprocessable Entity'
+                    response.url = '{}{}/{}?view={}'.format(
+                        _API_URL, parse.quote(self.base_id), parse.quote(table_name),
+                        parse.quote(view))
+                    response.raise_for_status()
+                items = filter(view_predicate, items)
+            else:
+                logging.warning(
+                    'The view field is ignored as no views were created in airtablemock.')
+
         if filter_by_formula:
             items = filter(_create_predicate(filter_by_formula), items)
+
         if offset:
             items = itertools.islice(items, offset, None)
+
         if not limit or limit > 100:
             # Default value, on Airtable server.
             limit = 100
@@ -111,6 +147,14 @@ class Airtable(object):
         table = self._table(table_name)
         del table[record_id]
         return {'id': record_id, 'deleted': True}
+
+    def create_view(self, table_name, view_name, formula):
+        """Creates a view on a given table.
+
+        This is not part of the official API, so you should only use this in tests.
+        """
+        # TODO(pascal): Implement the different sorting.
+        _VIEWS[self.base_id][table_name][view_name] = _create_predicate(formula)
 
 
 # See grammar at
@@ -178,7 +222,7 @@ def _create_predicate_from_node(formula):
             'Function "{}" not supported yet in filter_by_formula'.format(funcname))
 
     raise NotImplementedError(
-        'Grammar not supported yet in filter_by_formula: {}'.forma(formula.text))
+        'Grammar not supported yet in filter_by_formula: {}'.format(formula.text))
 
 
 def _create_value_getter_from_node(node):

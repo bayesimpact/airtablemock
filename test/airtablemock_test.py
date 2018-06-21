@@ -1,10 +1,13 @@
 """Unit tests for the airtablemock module."""
+
+import re
 import unittest
 
 import mock
 
 from airtable import airtable
 import airtablemock
+from requests import exceptions
 
 
 class AirtablemockTestCase(airtablemock.TestCase):
@@ -13,7 +16,7 @@ class AirtablemockTestCase(airtablemock.TestCase):
     def test_get(self):
         """Test basic usage of the get method."""
 
-        base = airtable.Airtable()
+        base = airtable.Airtable('base')
         base.create('table', {'number': 1})
         base.create('table', {'number': 2})
 
@@ -24,7 +27,7 @@ class AirtablemockTestCase(airtablemock.TestCase):
     def test_get_by_record_id(self):
         """Test getting one record by its ID."""
 
-        base = airtable.Airtable()
+        base = airtable.Airtable('base')
         record = base.create('table', {'number': 1})
         base.create('table', {'number': 2})
 
@@ -35,7 +38,7 @@ class AirtablemockTestCase(airtablemock.TestCase):
     def test_filter_by_formula_equal(self):
         """Test filtering by formula with a simple equal."""
 
-        base = airtable.Airtable()
+        base = airtable.Airtable('base')
         base.create('table', {'number': 1, 'filter': 'yes'})
         base.create('table', {'number': 2, 'filter': 'no'})
         base.create('table', {'number': 3, 'filter': 'yes'})
@@ -47,7 +50,7 @@ class AirtablemockTestCase(airtablemock.TestCase):
     def test_filter_by_formula_greater(self):
         """Test filtering by formula with a numerical greater than."""
 
-        base = airtable.Airtable()
+        base = airtable.Airtable('base')
         base.create('table', {'number': 1, 'filter': 'yes'})
         base.create('table', {'number': 2, 'filter': 'no'})
         base.create('table', {'number': 3, 'filter': 'yes'})
@@ -59,7 +62,7 @@ class AirtablemockTestCase(airtablemock.TestCase):
     def test_filter_by_formula_and(self):
         """Test filtering by formula using AND."""
 
-        base = airtable.Airtable()
+        base = airtable.Airtable('base')
         base.create('table', {'number': 1, 'filter': 'yes', 'other': 'a'})
         base.create('table', {'number': 2, 'filter': 'no', 'other': 'a'})
         base.create('table', {'number': 3, 'filter': 'yes', 'other': 'b'})
@@ -72,7 +75,7 @@ class AirtablemockTestCase(airtablemock.TestCase):
     def test_filter_by_formula_offset(self):
         """Test filtering by formula and using an offset."""
 
-        base = airtable.Airtable()
+        base = airtable.Airtable('base')
         base.create('table', {'number': 1, 'filter': 'no'})
         base.create('table', {'number': 2, 'filter': 'yes'})
         base.create('table', {'number': 3, 'filter': 'yes'})
@@ -82,10 +85,65 @@ class AirtablemockTestCase(airtablemock.TestCase):
 
         self.assertEqual([3], [record['fields']['number'] for record in records])
 
+    def test_view(self):
+        """Test calling records of a view."""
+
+        base = airtable.Airtable('base')
+        base.create('table', {'number': 1, 'filter': 'no'})
+        base.create('table', {'number': 2, 'filter': 'yes'})
+        base.create('table', {'number': 3, 'filter': 'yes'})
+
+        base.create_view('table', 'filtered view', 'filter = "yes"')
+
+        records = base.get('table', view='filtered view')['records']
+        self.assertEqual([2, 3], [record['fields']['number'] for record in records])
+
+    @mock.patch(airtablemock.logging.__name__ + '.warning')
+    def test_view_never_created(self, mock_logging):
+        """Test calling records of a view without ever creating any views."""
+
+        base = airtable.Airtable('base')
+        base.create('table', {'number': 1, 'filter': 'no'})
+        base.create('table', {'number': 2, 'filter': 'yes'})
+        base.create('table', {'number': 3, 'filter': 'yes'})
+
+        records = base.get('table', view='filtered view')['records']
+        self.assertEqual([1, 2, 3], [record['fields']['number'] for record in records])
+
+        mock_logging.assert_called_once_with(
+            'The view field is ignored as no views were created in airtablemock.')
+
+    def test_view_and_filter(self):
+        """Test filtering records of a view."""
+
+        base = airtable.Airtable('base')
+        base.create('table', {'number': 1, 'filter': 'no'})
+        base.create('table', {'number': 2, 'filter': 'yes'})
+        base.create('table', {'number': 3, 'filter': 'yes'})
+
+        base.create_view('table', 'filtered view', 'filter = "yes"')
+
+        records = base.get('table', view='filtered view', filter_by_formula='number > 2')['records']
+        self.assertEqual([3], [record['fields']['number'] for record in records])
+
+    def test_unknown_view(self):
+        """Try accessing an unknown view, while views are enabled."""
+
+        base = airtable.Airtable('base')
+        base.create('table', {'number': 1, 'filter': 'no'})
+
+        base.create_view('table', 'existing view', 'filter = "yes"')
+
+        match_exception = '422 .* Unprocessable Entity .* {}'.format(
+            re.escape('{}base/table?view=non%20existing%20view'.format(
+                airtable.API_URL % airtable.API_VERSION)))
+        with self.assertRaisesRegex(exceptions.HTTPError, match_exception):
+            base.get('table', view='non existing view')
+
     def test_iterate(self):
         """Test basic usage of the iterate method."""
 
-        base = airtable.Airtable()
+        base = airtable.Airtable('base')
         base.create('table', {'number': 3})
         base.create('table', {'number': 4})
 
@@ -99,7 +157,7 @@ class AirtablemockTestCase(airtablemock.TestCase):
 
         mock_randrange.return_value = 14
 
-        base = airtable.Airtable()
+        base = airtable.Airtable('base')
         base.create('table', {'number': 5})
         with self.assertRaises(RuntimeError):
             base.create('table', {'number': 6})
@@ -107,7 +165,7 @@ class AirtablemockTestCase(airtablemock.TestCase):
     def test_update(self):
         """Updates a record partially."""
 
-        base = airtable.Airtable()
+        base = airtable.Airtable('base')
         record = base.create('table', {'number': 3, 'untouched_field': 'original'})
         record_id = record['id']
         base.update('table', record_id, {'number': 4, 'new_field': 'future'})
@@ -119,7 +177,7 @@ class AirtablemockTestCase(airtablemock.TestCase):
     def test_update_all(self):
         """Updates a record entirely."""
 
-        base = airtable.Airtable()
+        base = airtable.Airtable('base')
         record = base.create('table', {'number': 3, 'untouched_field': 'original'})
         record_id = record['id']
         base.update_all('table', record_id, {'number': 4, 'new_field': 'future'})
@@ -130,7 +188,7 @@ class AirtablemockTestCase(airtablemock.TestCase):
     def test_delete(self):
         """Delete a record."""
 
-        base = airtable.Airtable()
+        base = airtable.Airtable('base')
         record = base.create('table', {'number': 3})
         record_id = record['id']
         base.create('table', {'number': 4})

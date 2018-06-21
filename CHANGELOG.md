@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+
+* Implement the `view` feature of the get method.
+
 ## v0.0.4 [2018-06-19]
 
 * Implement the `filter_by_formula` feature of the get method.
