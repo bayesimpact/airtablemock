@@ -5,6 +5,7 @@
 * Implement the `view` feature of the get and iterate method.
 * Implement the `filter_by_formula` feature of the iterate method.
 * Raises an error when trying to access a table that was not created before.
+* Fixes the `offset` response in the get method.
 
 ## v0.0.4 [2018-06-19]
 
