@@ -95,6 +95,31 @@ class AirtablemockTestCase(airtablemock.TestCase):
 
         self.assertEqual([3], [record['fields']['number'] for record in records])
 
+    def test_get_limit(self):
+        """Test the limit feature of the get method."""
+
+        base = airtable.Airtable('base')
+        base.create('table', {'number': 1})
+        base.create('table', {'number': 2})
+        base.create('table', {'number': 3})
+        base.create('table', {'number': 4})
+        base.create('table', {'number': 5})
+
+        response = base.get('table', limit=2)
+
+        self.assertEqual([1, 2], [record['fields']['number'] for record in response['records']])
+        self.assertEqual(2, response.get('offset'))
+
+        response = base.get('table', limit=2, offset=2)
+
+        self.assertEqual([3, 4], [record['fields']['number'] for record in response['records']])
+        self.assertEqual(4, response.get('offset'))
+
+        response = base.get('table', limit=2, offset=4)
+
+        self.assertEqual([5], [record['fields']['number'] for record in response['records']])
+        self.assertNotIn('offset', response)
+
     def test_view(self):
         """Test calling records of a view."""
 

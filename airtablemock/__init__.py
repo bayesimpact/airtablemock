@@ -110,8 +110,7 @@ class Airtable(object):
 
         all_items = list(items)
         response = {'records': all_items}
-        # TODO(pascal): Fix this condition, it's reversed.
-        if len(all_items) + (offset or 0) == len(table):
+        if len(all_items) + (offset or 0) < len(table):
             response['offset'] = (offset or 0) + len(all_items)
         return response
 
