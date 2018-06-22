@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='airtablemock',
-    version='0.0.4',
+    version='0.0.5',
     packages=['airtablemock'],
     install_requires=['mock>=2.0.0', 'parsimonious>=0.8.1', 'requests'],
     tests_require=['airtable', 'pytest'],

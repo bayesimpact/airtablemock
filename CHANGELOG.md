@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## v0.0.5 [2018-06-22]
 
 * Implement the `view` feature of the get and iterate method.
 * Implement the `filter_by_formula` feature of the iterate method.
