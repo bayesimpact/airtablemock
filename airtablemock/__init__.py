@@ -50,7 +50,7 @@ class Airtable(object):
             response.status_code = 404
             response.reason = 'Not Found'
             response.url = '{}{}/{}'.format(
-                _API_URL, parse.quote(self.base_id), parse.quote(table_name))
+                _API_URL, parse.quote(self.base_id or ''), parse.quote(table_name or ''))
             response.raise_for_status()
         return _BASES[self.base_id][table_name]
 
@@ -69,7 +69,7 @@ class Airtable(object):
                     response.status_code = 422
                     response.reason = 'Unprocessable Entity'
                     response.url = '{}{}/{}?view={}'.format(
-                        _API_URL, parse.quote(self.base_id), parse.quote(table_name),
+                        _API_URL, parse.quote(self.base_id or ''), parse.quote(table_name or ''),
                         parse.quote(view))
                     response.raise_for_status()
                 items = filter(view_predicate, items)
@@ -168,7 +168,7 @@ _FORMULA_GRAMMAR = grammar.Grammar(
     numeric     = "-"? positive_number ("." positive_number)?
     positive_number = ~"[0-9]+"
     text        = "\"" quoted_text "\""
-    quoted_text = ~"([^\"\\\\]|\\.)*"
+    quoted_text = ~"([^\"\\\\]|\\\\.)*"
     binary_function = "AND" / "OR"
     '''
 )
