@@ -1,5 +1,9 @@
 # Change Log
 
+## v0.0.6 [2018-06-26]
+
+* Fix the `filter_by_formula` when a quoted value contains a quote.
+
 ## v0.0.5 [2018-06-22]
 
 * Implement the `view` feature of the get and iterate method.

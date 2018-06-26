@@ -95,6 +95,18 @@ class AirtablemockTestCase(airtablemock.TestCase):
 
         self.assertEqual([3], [record['fields']['number'] for record in records])
 
+    def test_filter_by_formula_quotes(self):
+        """Test filtering by formula using a string with quotes."""
+
+        base = airtable.Airtable('base')
+        base.create('table', {'number': 1, 'filter': '\'"(=,)}{'})
+        base.create('table', {'number': 2, 'filter': 'no'})
+        base.create('table', {'number': 3, 'filter': 'yes'})
+
+        records = base.get('table', filter_by_formula='filter = "\'\\"(=,)}{"')['records']
+
+        self.assertEqual([1], [record['fields']['number'] for record in records])
+
     def test_get_limit(self):
         """Test the limit feature of the get method."""
 
