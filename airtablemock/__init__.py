@@ -46,6 +46,14 @@ class Airtable(object):
 
     def _table(self, table_name, must_exist=True):
         if must_exist and table_name not in _BASES[self.base_id]:
+            logging.warning(
+                'Testers, before accessing a table it should be created, probably in your '
+                'test code. Either:\n'
+                ' - insert a record using\n'
+                '   airtable.Airtable({base}).create({table}, record)\n'
+                ' - create an empty table using\n'
+                '   airtablemock.create_empty_table({base}, {table})'.format(
+                    base=repr(self.base_id), table=repr(table_name)))
             response = requests.Response()
             response.status_code = 404
             response.reason = 'Not Found'
@@ -251,3 +259,11 @@ class TestCase(unittest.TestCase):
 
 def _generate_random_id():
     return 'rec%x' % random.randrange(0x10000000000)
+
+
+def create_empty_table(base_id, table_name):
+    """Create an empty table in the given base."""
+
+    if table_name in _BASES[base_id]:
+        raise ValueError('Table "{}" already exists in "{}"'.format(table_name, base_id))
+    _BASES[base_id].__missing__(table_name)

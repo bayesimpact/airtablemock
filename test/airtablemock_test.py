@@ -35,7 +35,8 @@ class AirtablemockTestCase(airtablemock.TestCase):
 
         self.assertEqual(record, fetched_record)
 
-    def test_get_missing_table(self):
+    @mock.patch(airtablemock.logging.__name__ + '.warning')
+    def test_get_missing_table(self, mock_warning):
         """Test getting a table that does not exist."""
 
         base = airtable.Airtable('base')
@@ -44,6 +45,30 @@ class AirtablemockTestCase(airtablemock.TestCase):
             re.escape('{}base/table'.format(airtable.API_URL % airtable.API_VERSION)))
         with self.assertRaisesRegex(exceptions.HTTPError, match_exception):
             base.get('table')
+
+        mock_warning.assert_called_once()
+        self.assertIn('create_empty_table', mock_warning.call_args[0][0])
+
+    @mock.patch(airtablemock.logging.__name__ + '.warning')
+    def test_get_empty_table(self, mock_warning):
+        """Test getting an empty table."""
+
+        base = airtable.Airtable('base')
+
+        airtablemock.create_empty_table('base', 'table')
+        base.get('table')
+
+        mock_warning.assert_not_called()
+
+    def test_creating_empty_table_twice(self):
+        """Test creating an empty table twice."""
+
+        airtablemock.create_empty_table('base', 'table')
+        airtablemock.create_empty_table('base', 'table2')
+        airtablemock.create_empty_table('base2', 'table')
+
+        with self.assertRaises(ValueError):
+            airtablemock.create_empty_table('base', 'table')
 
     def test_filter_by_formula_equal(self):
         """Test filtering by formula with a simple equal."""
