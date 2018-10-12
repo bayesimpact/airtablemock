@@ -1,5 +1,9 @@
 # Change Log
 
+## v0.0.7 [2018-10-12]
+
+* Add a `create_empty_table` function.
+
 ## v0.0.6 [2018-06-26]
 
 * Fix the `filter_by_formula` when a quoted value contains a quote.
