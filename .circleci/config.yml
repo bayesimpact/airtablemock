@@ -8,3 +8,8 @@ jobs:
       - run:
           name: Run tests
           command: python setup.py pytest
+      - run:
+          name: Check typing
+          command: |
+            pip install . mypy
+            mypy airtablemock test --ignore-missing-imports --strict
