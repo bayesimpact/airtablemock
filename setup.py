@@ -4,6 +4,7 @@ setup(
     name='airtablemock',
     version='0.0.7',
     packages=['airtablemock'],
+    package_data={'airtablemock': ['py.typed']},
     install_requires=['mock>=2.0.0', 'parsimonious>=0.8.1', 'requests'],
     tests_require=['airtable', 'pytest'],
     setup_requires=['pytest-runner'],
