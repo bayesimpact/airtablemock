@@ -1,6 +1,6 @@
 # Change Log
 
-## v0.0.8 [2018-12-21]
+## v0.0.9 [2018-12-21]
 
 * Add [PEP 484](https://www.python.org/dev/peps/pep-0484/) type hints.
 
