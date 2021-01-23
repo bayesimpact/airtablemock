@@ -66,7 +66,18 @@ class Airtable(object):
     def _create_record(self, id, fields):
         return self._dict_class([('id', id), ('fields', fields)])
 
-    def iterate(self, table_name, batch_size=0, filter_by_formula=None, view=None):
+    def _filter_dict(self, values, fields):
+        if fields:
+            return self._dict_class([
+                (key, value)
+                for key, value in values.items()
+                if key in fields
+            ])
+        return values
+
+    def iterate(
+            self, table_name, batch_size=0, filter_by_formula=None, view=None, max_records=0,
+            fields=()):
         """Iterate over all records of a table."""
         if batch_size:
             logging.info('batch_size ignored in MockAirtableClient.iterate')
@@ -92,11 +103,14 @@ class Airtable(object):
         if filter_by_formula:
             items = filter(_create_predicate(filter_by_formula), items)
 
-        for key, fields in items:
-            yield self._create_record(key, fields)
+        if max_records:
+            items = itertools.islice(items, 0, max_records)
+
+        for record_id, values in items:
+            yield self._create_record(record_id, self._filter_dict(values, fields))
 
     def get(self, table_name, record_id=None, limit=0, offset=None,
-            filter_by_formula=None, view=None):
+            filter_by_formula=None, view=None, max_records=0, fields=()):
         """Get a list of records from a table.
 
         The view parameter is handled specifically compared to the real API: by
@@ -105,12 +119,13 @@ class Airtable(object):
         will return an error (the same error that Airtable would respond in
         case of a incorrect view).
         """
-        table = self._table(table_name)
-
         if record_id:
-            return self._create_record(record_id, self._table(table_name)[record_id])
+            return self._create_record(
+                record_id, self._filter_dict(self._table(table_name)[record_id], fields))
 
-        items = self.iterate(table_name, filter_by_formula=filter_by_formula, view=view)
+        items = self.iterate(
+            table_name, filter_by_formula=filter_by_formula, view=view, max_records=max_records,
+            fields=fields)
 
         if offset:
             items = itertools.islice(items, offset, None)
@@ -118,12 +133,16 @@ class Airtable(object):
         if not limit or limit > 100:
             # Default value, on Airtable server.
             limit = 100
-        items = itertools.islice(items, limit)
+        items_limited = itertools.islice(items, limit)
 
-        all_items = list(items)
+        all_items = list(items_limited)
         response = {'records': all_items}
-        if len(all_items) + (offset or 0) < len(table):
+        try:
+            next(items)
+            # TODO(pascal): Use a string offset, not a number...
             response['offset'] = (offset or 0) + len(all_items)
+        except StopIteration:
+            ...
         return response
 
     def create(self, table_name, data):

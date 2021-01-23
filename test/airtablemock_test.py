@@ -168,6 +168,44 @@ class AirtablemockTestCase(airtablemock.TestCase):
         self.assertEqual([5], [record['fields']['number'] for record in response['records']])
         self.assertNotIn('offset', response)
 
+    def test_get_fields(self) -> None:
+        """Test getting only some fields."""
+
+        base = airtable.Airtable('base', '')
+        base.create('table', {'number': 1, 'other': 3})
+
+        response = base.get('table', fields=('number',))
+        self.assertEqual({'number': 1}, response['records'][0]['fields'])
+
+    def test_get_by_id_fields(self) -> None:
+        """Test getting only some fields when fetching a record by its ID."""
+
+        base = airtable.Airtable('base', '')
+        record_id = base.create('table', {'number': 1, 'other': 3})['id']
+
+        response = base.get('table', record_id, fields=('number',))
+        self.assertEqual({'number': 1}, response['fields'])
+
+    def test_get_max_records(self) -> None:
+        """Test the max records feature of the get method."""
+
+        base = airtable.Airtable('base', '')
+        base.create('table', {'number': 1})
+        base.create('table', {'number': 2})
+        base.create('table', {'number': 3})
+        base.create('table', {'number': 4})
+        base.create('table', {'number': 5})
+
+        response = base.get('table', limit=2, max_records=3)
+
+        self.assertEqual([1, 2], [record['fields']['number'] for record in response['records']])
+        self.assertEqual(2, response.get('offset'))
+
+        response = base.get('table', limit=2, offset=response.get('offset'), max_records=3)
+
+        self.assertEqual([3], [record['fields']['number'] for record in response['records']])
+        self.assertNotIn('offset', response)
+
     def test_view(self) -> None:
         """Test calling records of a view."""
 
