@@ -7,7 +7,7 @@ def clear() -> None:
   ...
 
 
-def patch(target: typing.Any) -> mock._patch:
+def patch(target: typing.Any) -> mock._patch[mock.MagicMock]:
   ...
 
 
