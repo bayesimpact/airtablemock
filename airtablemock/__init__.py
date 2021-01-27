@@ -40,9 +40,10 @@ def patch(target):
 class Airtable(object):
     """Airtable mock client."""
 
-    def __init__(self, base_id=None, api_key=None):
+    def __init__(self, base_id=None, api_key=None, dict_class=collections.OrderedDict):
         self.base_id = base_id
         self.api_key = api_key
+        self._dict_class = dict_class
 
     def _table(self, table_name, must_exist=True):
         if must_exist and table_name not in _BASES[self.base_id]:
@@ -61,6 +62,9 @@ class Airtable(object):
                 _API_URL, parse.quote(self.base_id or ''), parse.quote(table_name or ''))
             response.raise_for_status()
         return _BASES[self.base_id][table_name]
+
+    def _create_record(self, id, fields):
+        return self._dict_class([('id', id), ('fields', fields)])
 
     def iterate(self, table_name, batch_size=0, filter_by_formula=None, view=None):
         """Iterate over all records of a table."""
@@ -89,7 +93,7 @@ class Airtable(object):
             items = filter(_create_predicate(filter_by_formula), items)
 
         for key, fields in items:
-            yield {'id': key, 'fields': fields}
+            yield self._create_record(key, fields)
 
     def get(self, table_name, record_id=None, limit=0, offset=None,
             filter_by_formula=None, view=None):
@@ -104,7 +108,7 @@ class Airtable(object):
         table = self._table(table_name)
 
         if record_id:
-            return {'id': record_id, 'fields': self._table(table_name)[record_id]}
+            return self._create_record(record_id, self._table(table_name)[record_id])
 
         items = self.iterate(table_name, filter_by_formula=filter_by_formula, view=view)
 
@@ -133,25 +137,25 @@ class Airtable(object):
             raise RuntimeError('Could not generate a new random ID')
 
         table[record_id] = data
-        return {'id': record_id, 'fields': data}
+        return self._create_record(record_id, self._dict_class(data))
 
     def update(self, table_name, record_id, data):
         """Update one record partially."""
         table = self._table(table_name)
         table[record_id].update(data)
-        return {'id': record_id, 'fields': table[record_id]}
+        return self._create_record(record_id, table[record_id])
 
     def update_all(self, table_name, record_id, data):
         """Update one record completely."""
         table = self._table(table_name)
-        table[record_id] = data
-        return {'id': record_id, 'fields': table[record_id]}
+        table[record_id] = self._dict_class(data)
+        return self._create_record(record_id, table[record_id])
 
     def delete(self, table_name, record_id):
         """Delete a record."""
         table = self._table(table_name)
         del table[record_id]
-        return {'id': record_id, 'deleted': True}
+        return self._dict_class([('id', record_id), ('deleted', True)])
 
     def create_view(self, table_name, view_name, formula):
         """Creates a view on a given table.

@@ -1,5 +1,6 @@
 """Unit tests for the airtablemock module."""
 
+import collections
 import re
 import typing
 import unittest
@@ -30,11 +31,20 @@ class AirtablemockTestCase(airtablemock.TestCase):
 
         base = airtable.Airtable('base', '')
         record = base.create('table', {'number': 1})
+        self.assertEqual(collections.OrderedDict, type(record))
+        self.assertEqual(collections.OrderedDict, type(record['fields']))
         base.create('table', {'number': 2})
 
         fetched_record = base.get('table', record_id=record['id'])
 
         self.assertEqual(record, fetched_record)
+
+    def test_dict_class(self) -> None:
+        """Test getting one record by its ID."""
+
+        base = airtable.Airtable('base', '', dict_class=dict)
+        record = base.create('table', {'number': 1})
+        self.assertEqual(dict, type(record))
 
     @mock.patch('logging.warning')
     def test_get_missing_table(self, mock_warning: mock.MagicMock) -> None:
