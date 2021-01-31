@@ -76,3 +76,7 @@ class TestCase(unittest.TestCase):
 
 def create_empty_table(base_id: str, table_name: str) -> None:
   ...
+
+
+def create_view(base_id: str, table_name: str, view_name: str, formula: str) -> None:
+  ...

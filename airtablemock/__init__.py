@@ -9,6 +9,7 @@ import re
 import sys
 import unittest
 from urllib import parse
+import warnings
 
 import mock
 from parsimonious import exceptions
@@ -162,8 +163,8 @@ class Airtable(object):
 
         This is not part of the official API, so you should only use this in tests.
         """
-        # TODO(pascal): Implement the different sorting.
-        _VIEWS[self.base_id][table_name][view_name] = _create_predicate(formula)
+        warnings.warn('Airtable.create_view is deprecated. Use airtablemock.create_view instead.')
+        create_view(self.base_id, table_name, view_name, formula)
 
 
 # See grammar at
@@ -271,3 +272,15 @@ def create_empty_table(base_id, table_name):
     if table_name in _BASES[base_id]:
         raise ValueError('Table "{}" already exists in "{}"'.format(table_name, base_id))
     _BASES[base_id].__missing__(table_name)
+
+
+def create_view(base_id, table_name, view_name, formula):
+    """Creates a view on a given table."""
+
+    if table_name not in _BASES[base_id]:
+        raise ValueError('Table "{}" does not exist in "{}" yet'.format(table_name, base_id))
+    if view_name in _VIEWS[base_id][table_name]:
+        raise ValueError(
+            'View "{}" already exists in "{}:{}"'.format(view_name, base_id, table_name))
+    # TODO(pascal): Implement the different sorting.
+    _VIEWS[base_id][table_name][view_name] = _create_predicate(formula)
