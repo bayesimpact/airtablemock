@@ -81,6 +81,22 @@ class AirtablemockTestCase(airtablemock.TestCase):
         with self.assertRaises(ValueError):
             airtablemock.create_empty_table('base', 'table')
 
+    def test_creating_view_before_table(self) -> None:
+        """Test creating a view before creating a table."""
+
+        with self.assertRaises(ValueError):
+            airtablemock.create_view('base', 'table', 'filtered view', 'filter = "yes"')
+
+    def test_creating_view_twice(self) -> None:
+        """Test creating a view twice."""
+
+        airtablemock.create_empty_table('base', 'table')
+        airtablemock.create_view('base', 'table', 'filtered view', 'filter = "yes"')
+        airtablemock.create_view('base', 'table', 'other view', 'filter = "yes"')
+
+        with self.assertRaises(ValueError):
+            airtablemock.create_view('base', 'table', 'filtered view', 'filter = "yes"')
+
     def test_filter_by_formula_equal(self) -> None:
         """Test filtering by formula with a simple equal."""
 
@@ -176,7 +192,7 @@ class AirtablemockTestCase(airtablemock.TestCase):
         base.create('table', {'number': 2, 'filter': 'yes'})
         base.create('table', {'number': 3, 'filter': 'yes'})
 
-        base.create_view('table', 'filtered view', 'filter = "yes"')
+        airtablemock.create_view('base', 'table', 'filtered view', 'filter = "yes"')
 
         records = base.get('table', view='filtered view')['records']
         self.assertEqual([2, 3], [record['fields']['number'] for record in records])
@@ -204,7 +220,7 @@ class AirtablemockTestCase(airtablemock.TestCase):
         base.create('table', {'number': 2, 'filter': 'yes'})
         base.create('table', {'number': 3, 'filter': 'yes'})
 
-        base.create_view('table', 'filtered view', 'filter = "yes"')
+        airtablemock.create_view('base', 'table', 'filtered view', 'filter = "yes"')
 
         records = base.get('table', view='filtered view', filter_by_formula='number > 2')['records']
         self.assertEqual([3], [record['fields']['number'] for record in records])
@@ -215,7 +231,7 @@ class AirtablemockTestCase(airtablemock.TestCase):
         base = airtable.Airtable('base', '')
         base.create('table', {'number': 1, 'filter': 'no'})
 
-        base.create_view('table', 'existing view', 'filter = "yes"')
+        airtablemock.create_view('base', 'table', 'existing view', 'filter = "yes"')
 
         match_exception = '422 .* Unprocessable Entity .* {}'.format(
             re.escape('{}base/table?view=non%20existing%20view'.format(
@@ -251,7 +267,7 @@ class AirtablemockTestCase(airtablemock.TestCase):
         base = airtable.Airtable('base', '')
         base.create('table', {'number': 3})
         base.create('table', {'number': 4})
-        base.create_view('table', 'my-view', 'number < 4')
+        airtablemock.create_view('base', 'table', 'my-view', 'number < 4')
 
         records = base.iterate('table', view='my-view')
 
