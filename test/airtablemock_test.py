@@ -217,7 +217,8 @@ class AirtablemockTestCase(airtablemock.TestCase):
         self.assertEqual([1, 2], [record['fields']['number'] for record in response['records']])
         self.assertEqual(2, response.get('offset'))
 
-        response = base.get('table', limit=2, offset=response.get('offset'), max_records=3)
+        response = base.get(
+            'table', limit=2, offset=typing.cast(int, response.get('offset')), max_records=3)
 
         self.assertEqual([3], [record['fields']['number'] for record in response['records']])
         self.assertNotIn('offset', response)
