@@ -384,6 +384,27 @@ class AirtablemockTestCase(airtablemock.TestCase):
         records = base1.iterate('table')
         self.assertEqual([8, 9], [record['fields']['number'] for record in records])
 
+    def test_table_method(self) -> None:
+        """Test the table method."""
+
+        base = airtable.Airtable('first-base', '')
+        base.create('table', {'number': 8})
+        base.table('table').create({'number': 9})
+
+        records = base.iterate('table')
+        self.assertEqual([8, 9], [record['fields']['number'] for record in records])
+
+    def test_table_class(self) -> None:
+        """Test accessing through a Table object."""
+
+        table = airtable.Table[typing.Mapping[str, int]]('first-base', 'table', api_key='apikey')
+        table.create({'number': 8})
+        result: int = next(table.iterate())['fields']['number']
+        self.assertEqual(8, result)
+
+        records = airtable.Airtable('first-base', '').iterate('table')
+        self.assertEqual([8], [record['fields']['number'] for record in records])
+
 
 class FunctionsTestCase(unittest.TestCase):
     """Tests for top level module functions."""

@@ -2,6 +2,8 @@ import mock
 import typing
 import unittest
 
+import airtable
+
 
 def clear() -> None:
   ...
@@ -12,6 +14,7 @@ def patch(target: typing.Any) -> mock._patch[mock.MagicMock]:
 
 
 _Record = typing.Dict[str, typing.Union[str, typing.Dict[str, typing.Any]]]
+_RecordType = typing.TypeVar('_RecordType', bound=typing.Mapping[str, typing.Any], covariant=True)
 
 
 class Airtable(object):
@@ -64,6 +67,9 @@ class Airtable(object):
     ...
 
   def delete(self, table_name: str, record_id: str) -> typing.Dict[str, typing.Union[str, bool]]:
+    ...
+
+  def table(self, table_name: str) -> airtable.Table[_RecordType]:
     ...
 
   def create_view(self, table_name: str, view_name: str, formula: str) -> None:

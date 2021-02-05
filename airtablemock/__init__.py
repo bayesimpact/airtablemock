@@ -11,6 +11,10 @@ import unittest
 from urllib import parse
 import warnings
 
+try:
+    import airtable
+except ImportError:
+    airtable = None
 import mock
 from parsimonious import exceptions
 from parsimonious import grammar
@@ -170,6 +174,12 @@ class Airtable(object):
         table = self._table(table_name)
         table[record_id] = self._dict_class(data)
         return self._create_record(record_id, table[record_id])
+
+    def table(self, table_name):
+        """Get access to a table."""
+        if not airtable:
+            return NotImplementedError('The table method requires the airtable package to work.')
+        return airtable.Table(self.base_id, table_name, self.api_key, self._dict_class)
 
     def delete(self, table_name, record_id):
         """Delete a record."""
